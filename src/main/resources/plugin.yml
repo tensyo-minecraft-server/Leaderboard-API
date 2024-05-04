@@ -1,0 +1,12 @@
+name: Leaderboard-API
+version: '${version}'
+main: moe.nmkmn.leaderboard_api.Leaderboard_API
+api-version: '1.20'
+authors: [namakemono-san]
+description: Plugins for leaderboards, only statistics are taken.
+website: https://www.tensyoserver.net
+depend: [PlaceholderAPI,Jecon]
+commands:
+    lb-api:
+        description: lb-api
+        permission: leaderboard_api.command.spd
