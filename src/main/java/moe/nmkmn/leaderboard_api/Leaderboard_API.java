@@ -77,8 +77,16 @@ public final class Leaderboard_API extends JavaPlugin {
                             // Writing Cache
                             PlayerModel playerModel = playerDB.getPlayerFromDatabase(database.connection(), player);
 
-                            playerModel.setBlockBreak(playerModel.getBlockBreak() + cache.getCache("blockBreak", player.getUniqueId().toString()));
-                            playerModel.setBlockPlace(playerModel.getBlockPlace() + cache.getCache("blockPlace", player.getUniqueId().toString()));
+                            Long blockBreak = cache.getCache("blockBreak", player.getUniqueId().toString());
+                            Long blockPlace = cache.getCache("blockPlace", player.getUniqueId().toString());
+
+                            if (blockBreak != null) {
+                                playerModel.setBlockBreak(playerModel.getBlockBreak() + blockBreak);
+                            }
+
+                            if (blockPlace != null) {
+                                playerModel.setBlockPlace(playerModel.getBlockPlace() + blockPlace);
+                            }
 
                             cache.saveCache(player, "blockBreak", 0);
                             cache.saveCache(player, "blockPlace", 0);
