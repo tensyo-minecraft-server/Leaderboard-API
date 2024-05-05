@@ -9,6 +9,7 @@ import moe.nmkmn.leaderboard_api.listeners.BlockBreak;
 import moe.nmkmn.leaderboard_api.listeners.BlockPlace;
 import moe.nmkmn.leaderboard_api.listeners.PlayTime;
 import moe.nmkmn.leaderboard_api.models.PlayerModel;
+import moe.nmkmn.leaderboard_api.utils.Cache;
 import moe.nmkmn.leaderboard_api.utils.Database;
 import moe.nmkmn.leaderboard_api.utils.LeaderBoardExpansion;
 import moe.nmkmn.leaderboard_api.utils.PlayerDB;
@@ -16,9 +17,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -35,6 +33,11 @@ public final class Leaderboard_API extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+
+        // Load Cache
+        Cache cache = new Cache(this);
+        cache.checkCache("blockBreak.json");
+        cache.checkCache("blockPlace.json");
 
         // Load Jecon
         if (!Bukkit.getPluginManager().isPluginEnabled("Jecon")) {
@@ -63,31 +66,41 @@ public final class Leaderboard_API extends JavaPlugin {
                 new LeaderBoardExpansion(this, database).register(); //
             }
 
-            // Set Balance Status
+            // Writing To Database
             new BukkitRunnable() {
                 @Override
                 public void run() {
+                    PlayerDB playerDB = new PlayerDB();
+
                     for (Player player: Bukkit.getServer().getOnlinePlayers()) {
-                        OptionalDouble value = jecon.getRepository().getDouble(player.getUniqueId());
+                        try {
+                            // Writing Cache
+                            PlayerModel playerModel = playerDB.getPlayerFromDatabase(database.connection(), player);
 
-                        PlayerDB playerDB = new PlayerDB();
+                            playerModel.setBlockBreak(playerModel.getBlockBreak() + cache.getCache("blockBreak", player.getUniqueId().toString()));
+                            playerModel.setBlockPlace(playerModel.getBlockPlace() + cache.getCache("blockPlace", player.getUniqueId().toString()));
 
-                        if (value.isPresent()) {
-                            try {
-                                PlayerModel playerModel = playerDB.getPlayerFromDatabase(database.connection(), player);
+                            cache.saveCache(player, "blockBreak", 0);
+                            cache.saveCache(player, "blockPlace", 0);
+
+                            // Writing Money
+                            OptionalDouble value = jecon.getRepository().getDouble(player.getUniqueId());
+
+                            if (value.isPresent()) {
                                 playerModel.setBalance(value.getAsDouble());
-                                playerDB.update(database.connection(), playerModel);
-                            } catch (SQLException e) {
-                                throw new RuntimeException(e);
                             }
+
+                            playerDB.update(database.connection(), playerModel);
+                        } catch (SQLException e) {
+                            getLogger().severe(e.getMessage());
                         }
                     }
                 }
             }.runTaskTimer(this, 0, 60 * 20L);
 
             // Event Listeners
-            getServer().getPluginManager().registerEvents(new BlockPlace(this, database), this);
-            getServer().getPluginManager().registerEvents(new BlockBreak(this, database), this);
+            getServer().getPluginManager().registerEvents(new BlockPlace(this), this);
+            getServer().getPluginManager().registerEvents(new BlockBreak(this), this);
             getServer().getPluginManager().registerEvents(new PlayTime(this, database), this);
 
             // Command Listeners
