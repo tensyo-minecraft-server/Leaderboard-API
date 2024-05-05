@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -225,9 +224,9 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
 
                     if (params_split[2].equals("raw")) {
                         return String.valueOf(playerModel.getPlayTime());
+                    } else {
+                        return formatTime(playerModel.getPlayTime());
                     }
-
-                    return formatTime(playerModel.getPlayTime());
                 }
             }
         } catch (ArrayIndexOutOfBoundsException | SQLException e) {
