@@ -24,7 +24,11 @@ public class Cache {
     public void checkCache(String name) {
         File pluginDirectory = new File(plugin.getDataFolder() + "/cache/");
         if (!pluginDirectory.exists()) {
-            pluginDirectory.mkdirs();
+            boolean success = pluginDirectory.mkdirs();
+
+            if (!success) {
+                plugin.getLogger().warning("The directory could not be created successfully.");
+            }
         }
 
         File cacheFile = new File(plugin.getDataFolder() + "/cache/" + name);
