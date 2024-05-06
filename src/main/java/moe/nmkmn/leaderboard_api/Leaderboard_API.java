@@ -98,6 +98,9 @@ public final class Leaderboard_API extends JavaPlugin {
                                 playerModel.setBalance(value.getAsDouble());
                             }
 
+                            // Writing lastName
+                            playerModel.setLastName(player.getName());
+
                             playerDB.update(database.connection(), playerModel);
                         } catch (SQLException e) {
                             getLogger().severe(e.getMessage());

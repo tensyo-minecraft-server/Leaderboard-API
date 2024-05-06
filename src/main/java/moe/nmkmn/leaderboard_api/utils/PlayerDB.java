@@ -1,23 +1,28 @@
 package moe.nmkmn.leaderboard_api.utils;
 
 import moe.nmkmn.leaderboard_api.models.PlayerModel;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.UUID;
 
 public class PlayerDB {
     public void create(Connection connection, PlayerModel playerModel) throws SQLException {
         PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO Player(uuid, balance, blockBreak, blockPlace, playTime) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO Player(uuid, lastName, balance, blockBreak, blockPlace, playTime) VALUES (?, ?, ?, ?, ?, ?)"
         );
 
         statement.setString(1, playerModel.getUUID());
-        statement.setDouble(2, playerModel.getBalance());
-        statement.setLong(3, playerModel.getBlockBreak());
-        statement.setLong(4, playerModel.getBlockPlace());
-        statement.setLong(5, playerModel.getPlayTime());
+        statement.setString(2, playerModel.getLastName());
+        statement.setDouble(3, playerModel.getBalance());
+        statement.setLong(4, playerModel.getBlockBreak());
+        statement.setLong(5, playerModel.getBlockPlace());
+        statement.setLong(6, playerModel.getPlayTime());
 
         statement.executeUpdate();
         connection.commit();
@@ -26,14 +31,15 @@ public class PlayerDB {
 
     public void update(Connection connection, PlayerModel playerModel) throws SQLException {
         PreparedStatement statement = connection.prepareStatement(
-                "UPDATE Player SET balance = ?, blockBreak = ?, blockPlace = ?, playTime = ? WHERE uuid = ?"
+                "UPDATE Player SET lastName = ?, balance = ?, blockBreak = ?, blockPlace = ?, playTime = ? WHERE uuid = ?"
         );
 
-        statement.setDouble(1, playerModel.getBalance());
-        statement.setLong(2, playerModel.getBlockBreak());
-        statement.setLong(3, playerModel.getBlockPlace());
-        statement.setLong(4, playerModel.getPlayTime());
-        statement.setString(5, playerModel.getUUID());
+        statement.setString(1, playerModel.getLastName());
+        statement.setDouble(2, playerModel.getBalance());
+        statement.setLong(3, playerModel.getBlockBreak());
+        statement.setLong(4, playerModel.getBlockPlace());
+        statement.setLong(5, playerModel.getPlayTime());
+        statement.setString(6, playerModel.getUUID());
 
         statement.executeUpdate();
         connection.commit();
@@ -49,7 +55,7 @@ public class PlayerDB {
         PlayerModel playerModel;
 
         if(resultSet.next()){
-            playerModel = new PlayerModel(resultSet.getString("uuid"), resultSet.getDouble("balance"), resultSet.getLong("blockBreak"), resultSet.getLong("blockPlace"), resultSet.getLong("playTime"));
+            playerModel = new PlayerModel(resultSet.getString("uuid"), resultSet.getString("lastName"), resultSet.getDouble("balance"), resultSet.getLong("blockBreak"), resultSet.getLong("blockPlace"), resultSet.getLong("playTime"));
 
             statement.close();
 
@@ -61,24 +67,26 @@ public class PlayerDB {
         return null;
     }
 
-    public PlayerModel getPlayerFromDatabase(Connection connection, org.bukkit.entity.Player player) throws SQLException {
+    public PlayerModel getPlayerFromDatabase(Connection connection, Player player) throws SQLException {
         PlayerDB playerDB = new PlayerDB();
         PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
 
         if (playerModel == null) {
-            playerModel = new PlayerModel(player.getUniqueId().toString(), 0.0, 0, 0, 0);
+            playerModel = new PlayerModel(player.getUniqueId().toString(), player.getName(), 0.0, 0, 0, 0);
             playerDB.create(connection, playerModel);
         }
 
         return playerModel;
     }
 
-    public PlayerModel getUUIDByDatabase(Connection connection, String UUID) throws SQLException {
+    public PlayerModel getUUIDByDatabase(Connection connection, String uuid) throws SQLException {
         PlayerDB playerDB = new PlayerDB();
-        PlayerModel playerModel = playerDB.findByUUID(connection, UUID);
+        PlayerModel playerModel = playerDB.findByUUID(connection, uuid);
+
+        OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
 
         if (playerModel == null) {
-            playerModel = new PlayerModel(UUID, 0.0, 0, 0,0);
+            playerModel = new PlayerModel(uuid, player.getName(), 0.0, 0, 0, 0);
             playerDB.create(connection, playerModel);
         }
 
