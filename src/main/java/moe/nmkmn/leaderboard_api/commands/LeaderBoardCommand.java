@@ -2,7 +2,6 @@ package moe.nmkmn.leaderboard_api.commands;
 
 import moe.nmkmn.leaderboard_api.Leaderboard_API;
 import moe.nmkmn.leaderboard_api.models.PlayerModel;
-import moe.nmkmn.leaderboard_api.utils.Database;
 import moe.nmkmn.leaderboard_api.utils.PlayerDB;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
