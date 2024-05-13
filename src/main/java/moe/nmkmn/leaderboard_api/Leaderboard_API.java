@@ -7,18 +7,19 @@ import jp.jyn.jecon.Jecon;
 import moe.nmkmn.leaderboard_api.commands.LeaderBoardCommand;
 import moe.nmkmn.leaderboard_api.listeners.BlockBreak;
 import moe.nmkmn.leaderboard_api.listeners.BlockPlace;
-import moe.nmkmn.leaderboard_api.listeners.PlayTime;
 import moe.nmkmn.leaderboard_api.models.PlayerModel;
 import moe.nmkmn.leaderboard_api.utils.Cache;
 import moe.nmkmn.leaderboard_api.utils.Database;
 import moe.nmkmn.leaderboard_api.utils.LeaderBoardExpansion;
 import moe.nmkmn.leaderboard_api.utils.PlayerDB;
 import org.bukkit.Bukkit;
+import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.OptionalDouble;
@@ -47,6 +48,11 @@ public final class Leaderboard_API extends JavaPlugin {
 
         this.jecon = (Jecon) Bukkit.getPluginManager().getPlugin("Jecon");
 
+        // Hook to PlaceholderAPI
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new LeaderBoardExpansion(this).register();
+        }
+
         // Load HikariCP DataSource
         try {
             loadDataSource();
@@ -56,69 +62,80 @@ public final class Leaderboard_API extends JavaPlugin {
             loadDataSource();
         }
 
-        try {
-            // Database Initialize
-            Database database = new Database(dataSource.getConnection());
+        // Database Initialize
+        try (Connection connection = getConnection()) {
+            Database database = new Database(connection);
             database.initialize();
-
-            // Hook to PlaceholderAPI
-            if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) { //
-                new LeaderBoardExpansion(this, database).register(); //
-            }
-
-            // Writing To Database
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    PlayerDB playerDB = new PlayerDB();
-
-                    for (Player player: Bukkit.getServer().getOnlinePlayers()) {
-                        try {
-                            // Writing Cache
-                            PlayerModel playerModel = playerDB.getPlayerFromDatabase(database.connection(), player);
-
-                            Long blockBreak = cache.getCache("blockBreak", player.getUniqueId().toString());
-                            Long blockPlace = cache.getCache("blockPlace", player.getUniqueId().toString());
-
-                            if (blockBreak != null) {
-                                playerModel.setBlockBreak(playerModel.getBlockBreak() + blockBreak);
-                            }
-
-                            if (blockPlace != null) {
-                                playerModel.setBlockPlace(playerModel.getBlockPlace() + blockPlace);
-                            }
-
-                            cache.saveCache(player, "blockBreak", 0);
-                            cache.saveCache(player, "blockPlace", 0);
-
-                            // Writing Money
-                            OptionalDouble value = jecon.getRepository().getDouble(player.getUniqueId());
-
-                            if (value.isPresent()) {
-                                playerModel.setBalance(value.getAsDouble());
-                            }
-
-                            // Writing lastName
-                            playerModel.setLastName(player.getName());
-
-                            playerDB.update(database.connection(), playerModel);
-                        } catch (SQLException e) {
-                            getLogger().severe(e.getMessage());
-                        }
-                    }
-                }
-            }.runTaskTimer(this, 0, 60 * 20L);
-
-            // Event Listeners
-            getServer().getPluginManager().registerEvents(new BlockPlace(this), this);
-            getServer().getPluginManager().registerEvents(new BlockBreak(this), this);
-            getServer().getPluginManager().registerEvents(new PlayTime(this, database), this);
-
-            // Command Listeners
-            Objects.requireNonNull(getCommand("lb-api")).setExecutor(new LeaderBoardCommand(this, database));
         } catch (SQLException e) {
             getLogger().severe(e.getMessage());
         }
+
+        // Writing To Database
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                PlayerDB playerDB = new PlayerDB();
+
+                for (Player player: Bukkit.getServer().getOnlinePlayers()) {
+                    try (Connection connection = getConnection()) {
+                        // Writing Cache
+                        PlayerModel playerModel = playerDB.getPlayerFromDatabase(connection, player);
+
+                        Long blockBreak = cache.getCache("blockBreak", player.getUniqueId().toString());
+                        Long blockPlace = cache.getCache("blockPlace", player.getUniqueId().toString());
+
+                        if (blockBreak != null) {
+                            playerModel.setBlockBreak(playerModel.getBlockBreak() + blockBreak);
+                        }
+
+                        if (blockPlace != null) {
+                            playerModel.setBlockPlace(playerModel.getBlockPlace() + blockPlace);
+                        }
+
+                        cache.saveCache(player, "blockBreak", 0);
+                        cache.saveCache(player, "blockPlace", 0);
+
+                        // Writing PlayTime
+                        playerModel.setPlayTime(player.getStatistic(Statistic.PLAY_ONE_MINUTE));
+
+                        // Writing Money
+                        OptionalDouble value = jecon.getRepository().getDouble(player.getUniqueId());
+
+                        if (value.isPresent()) {
+                            playerModel.setBalance(value.getAsDouble());
+                        }
+
+                        // Writing lastName
+                        playerModel.setLastName(player.getName());
+
+                        playerDB.update(connection, playerModel);
+                    } catch (Exception e) {
+                        getLogger().severe(e.getMessage());
+                    }
+                }
+            }
+        }.runTaskTimer(this, 0, 60 * 20L);
+
+        // Event Listeners
+        getServer().getPluginManager().registerEvents(new BlockPlace(this), this);
+        getServer().getPluginManager().registerEvents(new BlockBreak(this), this);
+
+        // Command Listeners
+        Objects.requireNonNull(getCommand("lb-api")).setExecutor(new LeaderBoardCommand(this));
+    }
+
+    public synchronized Connection getConnection() throws SQLException {
+        Connection connection = dataSource.getConnection();
+        if (!connection.isValid(5)) {
+            connection.close();
+            try {
+                return getConnection();
+            } catch (StackOverflowError databaseHasGoneDown) {
+                throw new RuntimeException("Valid connection could not be fetched (Is MySQL down?) - attempted until StackOverflowError occurred.", databaseHasGoneDown);
+            }
+        }
+        if (connection.getAutoCommit()) connection.setAutoCommit(false);
+        return connection;
     }
 
     private static synchronized void increment() {
@@ -153,6 +170,7 @@ public final class Leaderboard_API extends JavaPlugin {
             hikariConfig.setPoolName("Leaderboard-API Connection Pool-" + increment);
             increment();
 
+            hikariConfig.addDataSourceProperty("autoReconnect", true);
             hikariConfig.setAutoCommit(false);
             hikariConfig.setMaximumPoolSize(getConfig().getInt("database.max_connections"));
             hikariConfig.setMaxLifetime(getConfig().getInt("database.max_lifetime") * 60000L);

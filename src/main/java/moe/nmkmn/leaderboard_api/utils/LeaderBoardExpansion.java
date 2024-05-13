@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,11 +17,9 @@ import java.util.UUID;
 
 public class LeaderBoardExpansion extends PlaceholderExpansion {
     private final Leaderboard_API plugin;
-    private final Database database;
 
-    public LeaderBoardExpansion(Leaderboard_API plugin, Database database) {
+    public LeaderBoardExpansion(Leaderboard_API plugin) {
         this.plugin = plugin;
-        this.database = database;
     }
 
     @Override
@@ -70,7 +69,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         String[] params_split = params.split("_");
 
-        try {
+        try (Connection connection = plugin.getConnection())  {
             switch (params_split[0]) {
                 case "block" -> {
                     if (params_split[1].equals("break")) {
@@ -78,16 +77,12 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                             List<String> names = new ArrayList<>();
                             List<Long> values = new ArrayList<>();
 
-                            try {
-                                PreparedStatement statement = database.connection().prepareStatement("SELECT * FROM Player ORDER BY LPAD(blockBreak,64,0) DESC LIMIT 10");
-                                ResultSet resultSet = statement.executeQuery();
+                            PreparedStatement statement = connection.prepareStatement("SELECT * FROM Player ORDER BY LPAD(blockBreak,64,0) DESC LIMIT 10");
+                            ResultSet resultSet = statement.executeQuery();
 
-                                while (resultSet.next()) {
-                                    names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
-                                    values.add(resultSet.getLong("blockBreak"));
-                                }
-                            } catch (SQLException e) {
-                                return null;
+                            while (resultSet.next()) {
+                                names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
+                                values.add(resultSet.getLong("blockBreak"));
                             }
 
                             if (params_split[4].equals("name")) {
@@ -106,7 +101,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                         } else if (params_split[2].equals("me")) {
                             PlayerDB playerDB = new PlayerDB();
 
-                            PlayerModel playerModel = playerDB.findByUUID(database.connection(), player.getUniqueId().toString());
+                            PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
 
                             return String.valueOf(playerModel.getBlockBreak());
                         }
@@ -115,16 +110,12 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                             List<String> names = new ArrayList<>();
                             List<Long> values = new ArrayList<>();
 
-                            try {
-                                PreparedStatement statement = database.connection().prepareStatement("SELECT * FROM Player ORDER BY LPAD(blockPlace,64,0) DESC LIMIT 10");
-                                ResultSet resultSet = statement.executeQuery();
+                            PreparedStatement statement = connection.prepareStatement("SELECT * FROM Player ORDER BY LPAD(blockPlace,64,0) DESC LIMIT 10");
+                            ResultSet resultSet = statement.executeQuery();
 
-                                while (resultSet.next()) {
-                                    names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
-                                    values.add(resultSet.getLong("blockPlace"));
-                                }
-                            } catch (SQLException e) {
-                                return null;
+                            while (resultSet.next()) {
+                                names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
+                                values.add(resultSet.getLong("blockPlace"));
                             }
 
                             if (params_split[4].equals("name")) {
@@ -143,7 +134,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                         } else if (params_split[2].equals("me")) {
                             PlayerDB playerDB = new PlayerDB();
 
-                            PlayerModel playerModel = playerDB.findByUUID(database.connection(), player.getUniqueId().toString());
+                            PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
 
                             return String.valueOf(playerModel.getBlockPlace());
                         }
@@ -154,16 +145,12 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                         List<String> names = new ArrayList<>();
                         List<Double> values = new ArrayList<>();
 
-                        try {
-                            PreparedStatement statement = database.connection().prepareStatement("SELECT * FROM Player ORDER BY LPAD(balance,64,0) DESC LIMIT 10");
-                            ResultSet resultSet = statement.executeQuery();
+                        PreparedStatement statement = connection.prepareStatement("SELECT * FROM Player ORDER BY LPAD(balance,64,0) DESC LIMIT 10");
+                        ResultSet resultSet = statement.executeQuery();
 
-                            while (resultSet.next()) {
-                                names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
-                                values.add(resultSet.getDouble("balance"));
-                            }
-                        } catch (SQLException e) {
-                            return null;
+                        while (resultSet.next()) {
+                            names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
+                            values.add(resultSet.getDouble("balance"));
                         }
 
                         if (params_split[3].equals("name")) {
@@ -182,7 +169,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                     } else if (params_split[1].equals("me")) {
                         PlayerDB playerDB = new PlayerDB();
 
-                        PlayerModel playerModel = playerDB.findByUUID(database.connection(), player.getUniqueId().toString());
+                        PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
 
                         return String.valueOf(playerModel.getBalance());
                     }
@@ -192,16 +179,12 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                         List<String> names = new ArrayList<>();
                         List<Long> values = new ArrayList<>();
 
-                        try {
-                            PreparedStatement statement = database.connection().prepareStatement("SELECT * FROM Player ORDER BY LPAD(playTime,64,0) DESC LIMIT 10");
-                            ResultSet resultSet = statement.executeQuery();
+                        PreparedStatement statement = connection.prepareStatement("SELECT * FROM Player ORDER BY LPAD(playTime,64,0) DESC LIMIT 10");
+                        ResultSet resultSet = statement.executeQuery();
 
-                            while (resultSet.next()) {
-                                names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
-                                values.add(resultSet.getLong("playTime"));
-                            }
-                        } catch (SQLException e) {
-                            return null;
+                        while (resultSet.next()) {
+                            names.add(Bukkit.getOfflinePlayer(UUID.fromString(resultSet.getString("uuid"))).getName());
+                            values.add(resultSet.getLong("playTime"));
                         }
 
                         if (params_split[3].equals("name")) {
@@ -223,7 +206,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                         }
                     } else if (params_split[1].equals("me")) {
                         PlayerDB playerDB = new PlayerDB();
-                        PlayerModel playerModel = playerDB.findByUUID(database.connection(), player.getUniqueId().toString());
+                        PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
 
                         if (params_split[2].equals("raw")) {
                             return String.valueOf(playerModel.getPlayTime());
@@ -233,8 +216,12 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                     }
                 }
             }
-        } catch (ArrayIndexOutOfBoundsException | SQLException e) {
-            return null;
+        } catch (SQLException e) {
+            plugin.getLogger().severe(e.getMessage());
+            return "DB ERROR";
+        } catch (Exception e) {
+            plugin.getLogger().severe(e.getMessage());
+            return "ERROR";
         }
 
         return null;

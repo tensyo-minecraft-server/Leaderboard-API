@@ -11,36 +11,39 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
 
 public class LeaderBoardCommand implements CommandExecutor {
     public Leaderboard_API plugin;
-    public Database database;
 
-    public LeaderBoardCommand(Leaderboard_API plugin, Database database) {
+    public LeaderBoardCommand(Leaderboard_API plugin) {
         this.plugin = plugin;
-        this.database = database;
     }
 
     private void setValue(UUID uuid, int value, boolean place, boolean subtract) throws SQLException {
         PlayerDB playerDB = new PlayerDB();
 
-        PlayerModel playerModel = playerDB.getUUIDByDatabase(database.connection(), uuid.toString());
-        if (subtract) {
-            if (!place) {
-                playerModel.setBlockBreak(playerModel.getBlockBreak() - value);
+        try (Connection connection = plugin.getConnection()) {
+            PlayerModel playerModel = playerDB.getUUIDByDatabase(connection, uuid.toString());
+            if (subtract) {
+                if (!place) {
+                    playerModel.setBlockBreak(playerModel.getBlockBreak() - value);
+                } else {
+                    playerModel.setBlockPlace(playerModel.getBlockPlace() - value);
+                }
             } else {
-                playerModel.setBlockPlace(playerModel.getBlockPlace() - value);
+                if (!place) {
+                    playerModel.setBlockBreak(playerModel.getBlockBreak() + value);
+                } else {
+                    playerModel.setBlockPlace(playerModel.getBlockPlace() + value);
+                }
             }
-        } else {
-            if (!place) {
-                playerModel.setBlockBreak(playerModel.getBlockBreak() + value);
-            } else {
-                playerModel.setBlockPlace(playerModel.getBlockPlace() + value);
-            }
+            playerDB.update(connection, playerModel);
+        } catch (SQLException e) {
+            plugin.getLogger().severe(e.getMessage());
         }
-        playerDB.update(database.connection(), playerModel);
     }
 
     @Override
