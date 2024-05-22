@@ -25,6 +25,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
 
     @Override
     @NotNull
+    @SuppressWarnings("deprecation")
     public String getAuthor() {
         return String.join(", ", plugin.getDescription().getAuthors());
     }
@@ -37,6 +38,7 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
 
     @Override
     @NotNull
+    @SuppressWarnings("deprecation")
     public String getVersion() {
         return plugin.getDescription().getVersion();
     }
