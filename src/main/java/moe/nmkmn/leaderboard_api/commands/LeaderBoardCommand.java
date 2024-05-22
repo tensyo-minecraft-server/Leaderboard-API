@@ -25,7 +25,7 @@ public class LeaderBoardCommand implements CommandExecutor {
         PlayerDB playerDB = new PlayerDB();
 
         try (Connection connection = plugin.getConnection()) {
-            PlayerModel playerModel = playerDB.getUUIDByDatabase(connection, uuid.toString());
+            PlayerModel playerModel = playerDB.getUUIDByDatabase(connection, uuid);
             if (subtract) {
                 if (!place) {
                     playerModel.setBlockBreak(playerModel.getBlockBreak() - value);

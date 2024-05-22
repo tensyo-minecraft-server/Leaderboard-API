@@ -3,7 +3,6 @@ package moe.nmkmn.leaderboard_api.utils;
 import moe.nmkmn.leaderboard_api.models.PlayerModel;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -46,15 +45,15 @@ public class PlayerDB {
         statement.close();
     }
 
-    public PlayerModel findByUUID(Connection connection, String uuid) throws SQLException {
+    public PlayerModel findByUUID(Connection connection, UUID uuid) throws SQLException {
         PreparedStatement statement = connection.prepareStatement("SELECT * FROM Player WHERE uuid = ?");
-        statement.setString(1, uuid);
+        statement.setString(1, uuid.toString());
 
         ResultSet resultSet = statement.executeQuery();
 
         PlayerModel playerModel;
 
-        if(resultSet.next()){
+        if (resultSet.next()) {
             playerModel = new PlayerModel(resultSet.getString("uuid"), resultSet.getString("lastName"), resultSet.getDouble("balance"), resultSet.getLong("blockBreak"), resultSet.getLong("blockPlace"), resultSet.getLong("playTime"));
 
             statement.close();
@@ -67,26 +66,14 @@ public class PlayerDB {
         return null;
     }
 
-    public PlayerModel getPlayerFromDatabase(Connection connection, Player player) throws SQLException {
-        PlayerDB playerDB = new PlayerDB();
-        PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
-
-        if (playerModel == null) {
-            playerModel = new PlayerModel(player.getUniqueId().toString(), player.getName(), 0.0, 0, 0, 0);
-            playerDB.create(connection, playerModel);
-        }
-
-        return playerModel;
-    }
-
-    public PlayerModel getUUIDByDatabase(Connection connection, String uuid) throws SQLException {
+    public PlayerModel getUUIDByDatabase(Connection connection, UUID uuid) throws SQLException {
         PlayerDB playerDB = new PlayerDB();
         PlayerModel playerModel = playerDB.findByUUID(connection, uuid);
 
-        OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
+        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
 
         if (playerModel == null) {
-            playerModel = new PlayerModel(uuid, player.getName(), 0.0, 0, 0, 0);
+            playerModel = new PlayerModel(uuid.toString(), player.getName(), 0.0, 0, 0, 0);
             playerDB.create(connection, playerModel);
         }
 

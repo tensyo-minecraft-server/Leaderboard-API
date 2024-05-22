@@ -42,16 +42,19 @@ public final class Leaderboard_API extends JavaPlugin {
 
         // Load Jecon
         if (!Bukkit.getPluginManager().isPluginEnabled("Jecon")) {
-            getLogger().warning("Could not find Jecon! This plugin is required.");
+            getLogger().severe("Could not find Jecon! This plugin is required.");
             Bukkit.getPluginManager().disablePlugin(this);
         }
 
         this.jecon = (Jecon) Bukkit.getPluginManager().getPlugin("Jecon");
 
         // Hook to PlaceholderAPI
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new LeaderBoardExpansion(this).register();
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            getLogger().severe("Could not find PlaceholderAPI! This plugin is required.");
+            Bukkit.getPluginManager().disablePlugin(this);
         }
+
+        new LeaderBoardExpansion(this).register();
 
         // Load HikariCP DataSource
         try {
@@ -78,9 +81,9 @@ public final class Leaderboard_API extends JavaPlugin {
 
                 for (Player player: Bukkit.getServer().getOnlinePlayers()) {
                     try (Connection connection = getConnection()) {
-                        // Writing Cache
-                        PlayerModel playerModel = playerDB.getPlayerFromDatabase(connection, player);
+                        PlayerModel playerModel = playerDB.getUUIDByDatabase(connection, player.getUniqueId());
 
+                        // Writing blockBreak, blockPlace
                         Long blockBreak = cache.getCache("blockBreak", player.getUniqueId().toString());
                         Long blockPlace = cache.getCache("blockPlace", player.getUniqueId().toString());
 
@@ -108,6 +111,7 @@ public final class Leaderboard_API extends JavaPlugin {
                         // Writing lastName
                         playerModel.setLastName(player.getName());
 
+                        // Update Database
                         playerDB.update(connection, playerModel);
                     } catch (Exception e) {
                         getLogger().severe(e.getMessage());
