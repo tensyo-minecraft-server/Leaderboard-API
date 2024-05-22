@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -70,6 +71,11 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
         String[] params_split = params.split("_");
 
         try (Connection connection = plugin.getConnection())  {
+            PlayerDB playerDB = new PlayerDB();
+            PlayerModel playerModel = playerDB.getUUIDByDatabase(connection, player.getUniqueId());
+
+            NumberFormat numberFormat = NumberFormat.getNumberInstance();
+
             switch (params_split[0]) {
                 case "block" -> {
                     if (params_split[1].equals("break")) {
@@ -88,22 +94,16 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                             if (params_split[4].equals("name")) {
                                 if (names.size() > (Integer.parseInt(params_split[3]) - 1)) {
                                     return names.get(Integer.parseInt(params_split[3]) - 1);
-                                } else {
-                                    return "None";
                                 }
                             } else if (params_split[4].equals("value")) {
                                 if (values.size() > (Integer.parseInt(params_split[3]) - 1)) {
-                                    return values.get(Integer.parseInt(params_split[3]) - 1).toString();
-                                } else {
-                                    return "NaN";
+                                    return numberFormat.format(values.get(Integer.parseInt(params_split[3]) - 1));
                                 }
                             }
+
+                            return "None";
                         } else if (params_split[2].equals("me")) {
-                            PlayerDB playerDB = new PlayerDB();
-
-                            PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
-
-                            return String.valueOf(playerModel.getBlockBreak());
+                            return numberFormat.format(playerModel.getBlockBreak());
                         }
                     } else if (params_split[1].equals("place")) {
                         if (params_split[2].equals("rank")) {
@@ -121,22 +121,16 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                             if (params_split[4].equals("name")) {
                                 if (names.size() > (Integer.parseInt(params_split[3]) - 1)) {
                                     return names.get(Integer.parseInt(params_split[3]) - 1);
-                                } else {
-                                    return "None";
                                 }
                             } else if (params_split[4].equals("value")) {
                                 if (values.size() > (Integer.parseInt(params_split[3]) - 1)) {
-                                    return values.get(Integer.parseInt(params_split[3]) - 1).toString();
-                                } else {
-                                    return "NaN";
+                                    return numberFormat.format(values.get(Integer.parseInt(params_split[3]) - 1));
                                 }
                             }
+
+                            return "None";
                         } else if (params_split[2].equals("me")) {
-                            PlayerDB playerDB = new PlayerDB();
-
-                            PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
-
-                            return String.valueOf(playerModel.getBlockPlace());
+                            return numberFormat.format(playerModel.getBlockPlace());
                         }
                     }
                 }
@@ -156,22 +150,16 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                         if (params_split[3].equals("name")) {
                             if (names.size() > (Integer.parseInt(params_split[2]) - 1)) {
                                 return names.get(Integer.parseInt(params_split[2]) - 1);
-                            } else {
-                                return "None";
                             }
                         } else if (params_split[3].equals("value")) {
                             if (values.size() > (Integer.parseInt(params_split[2]) - 1)) {
-                                return String.valueOf(Math.round(values.get(Integer.parseInt(params_split[2]) - 1)));
-                            } else {
-                                return "NaN";
+                                return numberFormat.format(Math.round(values.get(Integer.parseInt(params_split[2]) - 1)));
                             }
                         }
+
+                        return "None";
                     } else if (params_split[1].equals("me")) {
-                        PlayerDB playerDB = new PlayerDB();
-
-                        PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
-
-                        return String.valueOf(playerModel.getBalance());
+                        return numberFormat.format(playerModel.getBalance());
                     }
                 }
                 case "playtime" -> {
@@ -205,9 +193,6 @@ public class LeaderBoardExpansion extends PlaceholderExpansion {
                             }
                         }
                     } else if (params_split[1].equals("me")) {
-                        PlayerDB playerDB = new PlayerDB();
-                        PlayerModel playerModel = playerDB.findByUUID(connection, player.getUniqueId().toString());
-
                         if (params_split[2].equals("raw")) {
                             return String.valueOf(playerModel.getPlayTime());
                         } else {
